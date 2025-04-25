@@ -7,6 +7,18 @@ A system of two interconnected microservices for content moderation, built with 
 1. **Text Submission Service**: Receives text input and communicates with the Profanity Checker Service.
 2. **Profanity Checker Service**: Checks input for profanity and returns either a boolean false (if profanity found) or the original string.
 
+## Environment Variables
+
+Before starting the server, set the following environment variables:
+
+```bash
+# Your Google GenAI API key
+export GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY"
+
+# (Optional) Override the default Genie model (default: gemini-2.0-flash)
+export GENAI_MODEL="gemini-2.0-flash"
+```
+
 ## Setup
 
 ```bash

@@ -1,6 +1,7 @@
 import { db } from "../db"
 import { swearWords } from "../db/schema"
 import { eq } from "drizzle-orm"
+import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai"
 
 // Interface for the profanity checker request
 export interface ProfanityCheckRequest {
@@ -18,6 +19,8 @@ export interface ProfanityCheckResponse {
  * Returns false if swear words are found, otherwise returns the original text
  */
 export class ProfanityCheckerService {
+  private ai: GoogleGenAI
+
   /**
    * Check text for profanity
    * @param text The text to check
@@ -40,7 +43,63 @@ export class ProfanityCheckerService {
       }
     }
 
-    // If no swear words found, return the original text
+    // No local match: use Google GenAI to detect profanity and learn new words
+    try {
+      const response = await this.ai.models.generateContent({
+        model: process.env.GENAI_MODEL || "gemini-1.5-flash",
+        contents: `Identify all swear words in the given text. Return a JSON array of lowercase words found. If none, return an empty array. Text: "${lowerText}"`,
+        config: {
+          safetySettings: [
+            {
+              category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+              threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+            },
+          ],
+        },
+      })
+
+      // Extract and clean the content to get valid JSON
+      const rawContent = response.text ?? "[]"
+      let content = rawContent
+
+      // Handle possible markdown code blocks or backticks in the response
+      if (content.includes("```")) {
+        // Extract content between markdown code blocks
+        const match = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
+        if (match && match[1]) {
+          content = match[1].trim()
+        }
+      }
+
+      // Remove any other non-JSON characters that might be present
+      content = content.trim()
+
+      let detected: string[] = []
+      try {
+        detected = JSON.parse(content)
+      } catch (parseError) {
+        console.error(
+          "Failed to parse JSON response:",
+          parseError,
+          "Raw content:",
+          rawContent
+        )
+        detected = []
+      }
+
+      if (detected.length > 0) {
+        for (const w of detected) {
+          const lw = w.toLowerCase().trim()
+          if (!(await this.isSwearWord(lw))) {
+            await this.addSwearWord(lw)
+          }
+        }
+        return false
+      }
+    } catch (err) {
+      console.error("Google GenAI error detecting swear words:", err)
+    }
+    // No profanity detected by Google GenAI, return original
     return text
   }
 
@@ -71,5 +130,9 @@ export class ProfanityCheckerService {
       .values({ word: lowercaseWord })
       .returning()
     return { id: newWord.id, word: newWord.word }
+  }
+
+  constructor() {
+    this.ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY || "" })
   }
 }
