@@ -1,5 +1,6 @@
 {
   "name": "content-moderation-microservices",
+  "type": "module",
   "scripts": {
     "dev": "bun run --hot src/index.ts",
     "start": "bun ./dist/src/index.js",
