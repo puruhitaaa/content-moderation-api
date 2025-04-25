@@ -39,7 +39,7 @@ export class ProfanityCheckerService {
       // e.g., "ass" should match in "kick ass" but not in "class"
       const regex = new RegExp(`\\b${word}\\b`, "i")
       if (regex.test(lowerText)) {
-        return false
+        return `Text contains profanity: ${word}`
       }
     }
 
@@ -94,7 +94,7 @@ export class ProfanityCheckerService {
             await this.addSwearWord(lw)
           }
         }
-        return false
+        return `Text contains profanity: ${detected.join(", ")}`
       }
     } catch (err) {
       console.error("Google GenAI error detecting swear words:", err)
