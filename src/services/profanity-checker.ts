@@ -58,4 +58,18 @@ export class ProfanityCheckerService {
 
     return result.length > 0
   }
+
+  /**
+   * Add a new swear word to the database
+   * @param word The swear word to add
+   * @returns Object containing the id and word of the new entry
+   */
+  async addSwearWord(word: string): Promise<{ id: number; word: string }> {
+    const lowercaseWord = word.toLowerCase()
+    const [newWord] = await db
+      .insert(swearWords)
+      .values({ word: lowercaseWord })
+      .returning()
+    return { id: newWord.id, word: newWord.word }
+  }
 }

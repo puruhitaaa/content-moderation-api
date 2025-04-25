@@ -1,24 +1,58 @@
-import { Hono } from "hono"
-import { zValidator } from "@hono/zod-validator"
-import { z } from "zod"
+import { OpenAPIHono, createRoute } from "@hono/zod-openapi"
 import { ProfanityCheckerService } from "../services"
+import { 
+  CheckProfanityRequestSchema, 
+  CheckProfanityResponseSchema, 
+  ErrorSchema, 
+  WordCheckResponseSchema,
+  WordParamSchema
+} from "../schemas/openapi"
 
 // Create a Hono app for the profanity checker service
-const profanityChecker = new Hono()
+const profanityChecker = new OpenAPIHono()
 const service = new ProfanityCheckerService()
 
-// Schema for the check endpoint request
-const checkSchema = z.object({
-  text: z.string().min(1, "Text is required"),
+// Check endpoint: POST /check
+const checkRoute = createRoute({
+  method: 'post',
+  path: '/check',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: CheckProfanityRequestSchema
+        }
+      },
+      required: true
+    }
+  },
+  responses: {
+    200: {
+      description: 'Text profanity check result',
+      content: {
+        'application/json': {
+          schema: CheckProfanityResponseSchema
+        }
+      }
+    },
+    500: {
+      description: 'Server error',
+      content: {
+        'application/json': {
+          schema: ErrorSchema
+        }
+      }
+    }
+  },
+  tags: ['Profanity Checker']
 })
 
-// Check endpoint: POST /check
-profanityChecker.post("/check", zValidator("json", checkSchema), async (c) => {
-  const { text } = c.req.valid("json")
+profanityChecker.openapi(checkRoute, async (c) => {
+  const { text } = c.req.valid('json') as { text: string }
 
   try {
     const result = await service.checkProfanity(text)
-    return c.json({ result })
+    return c.json({ result: result }, 200)
   } catch (error) {
     console.error("Error in profanity check:", error)
     return c.json({ error: "Failed to process text" }, 500)
@@ -26,12 +60,39 @@ profanityChecker.post("/check", zValidator("json", checkSchema), async (c) => {
 })
 
 // Check word endpoint: GET /word/:word
-profanityChecker.get("/word/:word", async (c) => {
-  const word = c.req.param("word")
+const wordCheckRoute = createRoute({
+  method: 'get',
+  path: '/word/{word}',
+  request: {
+    params: WordParamSchema
+  },
+  responses: {
+    200: {
+      description: 'Word check result',
+      content: {
+        'application/json': {
+          schema: WordCheckResponseSchema
+        }
+      }
+    },
+    500: {
+      description: 'Server error',
+      content: {
+        'application/json': {
+          schema: ErrorSchema
+        }
+      }
+    }
+  },
+  tags: ['Profanity Checker']
+})
+
+profanityChecker.openapi(wordCheckRoute, async (c) => {
+  const { word } = c.req.valid('param') as { word: string }
 
   try {
     const isSwearWord = await service.isSwearWord(word)
-    return c.json({ isSwearWord })
+    return c.json({ isSwearWord: isSwearWord }, 200)
   } catch (error) {
     console.error("Error checking word:", error)
     return c.json({ error: "Failed to check word" }, 500)

@@ -1,8 +1,5 @@
 # deps
 node_modules/
 
-# prompting files
-prompting.md
-
 # env
 .env

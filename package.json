@@ -9,6 +9,8 @@
     "db:setup": "bun run db:migrate && bun run db:seed"
   },
   "dependencies": {
+    "@hono/swagger-ui": "^0.5.1",
+    "@hono/zod-openapi": "^0.19.5",
     "@hono/zod-validator": "^0.4.3",
     "dotenv": "^16.5.0",
     "drizzle-orm": "^0.43.0",
