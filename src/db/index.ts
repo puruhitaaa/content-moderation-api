@@ -1,8 +1,10 @@
-import { drizzle } from "drizzle-orm/bun-sqlite"
-import { Database } from "bun:sqlite"
+import { drizzle } from "drizzle-orm/libsql"
+import { createClient } from "@libsql/client"
 import * as schema from "./schema"
-import "dotenv/config"
 
-const sqlite = new Database(process.env.DATABASE_URL ?? "sqlite.db")
+const turso = createClient({
+  url: process.env.DATABASE_URL!,
+  authToken: process.env.DATABASE_AUTH_TOKEN,
+})
 
-export const db = drizzle(sqlite, { schema })
+export const db = drizzle(turso, { schema })
