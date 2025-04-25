@@ -2,6 +2,8 @@
   "name": "content-moderation-microservices",
   "scripts": {
     "dev": "bun run --hot src/index.ts",
+    "start": "bun ./dist/src/index.js",
+    "build": "tsc && tsc-alias",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
@@ -22,6 +24,7 @@
   "devDependencies": {
     "@types/bun": "^1.2.10",
     "drizzle-kit": "^0.31.0",
+    "tsc-alias": "^1.8.15",
     "tsx": "^4.19.3"
   }
 }
