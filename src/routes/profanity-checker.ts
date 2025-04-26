@@ -91,7 +91,10 @@ profanityChecker.openapi(wordCheckRoute, async (c) => {
   const { word } = c.req.valid("param") as { word: string }
 
   try {
-    const isSwearWord = await service.isSwearWord(word)
+    const profanityResult = await service.checkProfanity(word)
+
+    const isSwearWord = profanityResult.startsWith("Text contains profanity")
+
     return c.json({ isSwearWord: isSwearWord }, 200)
   } catch (error) {
     console.error("Error checking word:", error)

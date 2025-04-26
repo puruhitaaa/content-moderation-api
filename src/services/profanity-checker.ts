@@ -26,24 +26,27 @@ export class ProfanityCheckerService {
    * @param text The text to check
    * @returns false if profanity found, original text otherwise
    */
-  async checkProfanity(text: string): Promise<string | false> {
-    // Get all swear words from the database
+  async checkProfanity(text: string): Promise<string> {
     const allSwearWords = await db.select().from(swearWords)
+    const swearWordSet = new Set(
+      allSwearWords.map((sw) => sw.word.toLowerCase())
+    )
 
-    // Convert to lowercase for case-insensitive comparison
     const lowerText = text.toLowerCase()
+    const wordsInText = lowerText.split(/[\s.,!?;:]+/).filter(Boolean)
 
-    // Check if any swear word exists in the text
-    for (const { word } of allSwearWords) {
-      // Simple word boundary check to avoid false positives
-      // e.g., "ass" should match in "kick ass" but not in "class"
-      const regex = new RegExp(`\\b${word}\\b`, "i")
-      if (regex.test(lowerText)) {
-        return `Text contains profanity: ${word}`
+    const foundLocalProfanities: string[] = []
+
+    for (const word of wordsInText) {
+      if (swearWordSet.has(word)) {
+        foundLocalProfanities.push(word)
       }
     }
 
-    // No local match: use Google GenAI to detect profanity and learn new words
+    if (foundLocalProfanities.length > 0) {
+      return `Text contains profanity: ${foundLocalProfanities.join(", ")}`
+    }
+
     try {
       const response = await this.ai.models.generateContent({
         model: process.env.GENAI_MODEL || "gemini-1.5-flash",
@@ -52,26 +55,22 @@ export class ProfanityCheckerService {
           safetySettings: [
             {
               category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-              threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+              threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
             },
           ],
         },
       })
 
-      // Extract and clean the content to get valid JSON
       const rawContent = response.text ?? "[]"
       let content = rawContent
 
-      // Handle possible markdown code blocks or backticks in the response
       if (content.includes("```")) {
-        // Extract content between markdown code blocks
         const match = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
         if (match && match[1]) {
           content = match[1].trim()
         }
       }
 
-      // Remove any other non-JSON characters that might be present
       content = content.trim()
 
       let detected: string[] = []
@@ -88,18 +87,30 @@ export class ProfanityCheckerService {
       }
 
       if (detected.length > 0) {
+        const newlyAdded: string[] = []
         for (const w of detected) {
           const lw = w.toLowerCase().trim()
-          if (!(await this.isSwearWord(lw))) {
+          if (
+            lw &&
+            !swearWordSet.has(lw) &&
+            !(await this.isSwearWordFromDB(lw))
+          ) {
             await this.addSwearWord(lw)
+            newlyAdded.push(lw)
           }
         }
-        return `Text contains profanity: ${detected.join(", ")}`
+
+        const allDetected = [...new Set([...detected, ...newlyAdded])]
+        if (allDetected.length > 0) {
+          return `Text contains profanity (detected by AI): ${allDetected
+            .map((w) => w.toLowerCase().trim())
+            .join(", ")}`
+        }
       }
     } catch (err) {
       console.error("Google GenAI error detecting swear words:", err)
     }
-    // No profanity detected by Google GenAI, return original
+
     return text
   }
 
@@ -108,7 +119,7 @@ export class ProfanityCheckerService {
    * @param word The word to check
    * @returns true if it's a swear word, false otherwise
    */
-  async isSwearWord(word: string): Promise<boolean> {
+  async isSwearWordFromDB(word: string): Promise<boolean> {
     const result = await db
       .select()
       .from(swearWords)
