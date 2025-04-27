@@ -2,7 +2,7 @@ import { OpenAPIHono } from "@hono/zod-openapi"
 import { swaggerUI } from "@hono/swagger-ui"
 import { cors } from "hono/cors"
 import { logger } from "hono/logger"
-import { profanityChecker, textSubmission } from "./routes"
+import { profanityChecker, textSubmission, sentimentAnalyzer } from "./routes"
 
 // Create main Hono app
 const app = new OpenAPIHono()
@@ -18,6 +18,7 @@ app.get("/", (c) => {
     services: {
       profanityChecker: "/api/profanity",
       textSubmission: "/api/text",
+      sentimentAnalyzer: "/api/sentiment",
     },
     documentation: "/docs",
   })
@@ -29,6 +30,9 @@ app.route("/api/profanity", profanityChecker)
 // Mount the text submission service
 app.route("/api/text", textSubmission)
 
+// Mount the sentiment analyzer service
+app.route("/api/sentiment", sentimentAnalyzer)
+
 // Add the Swagger UI
 app.get("/docs", swaggerUI({ url: "/openapi.json" }))
 
@@ -38,7 +42,8 @@ app.doc("/openapi.json", {
   info: {
     title: "Content Moderation Microservices API",
     version: "1.0.0",
-    description: "API for checking and submitting text content for profanity moderation",
+    description:
+      "API for checking and submitting text content for profanity moderation",
   },
   servers: [
     {

@@ -37,6 +37,55 @@ export const WordCheckResponseSchema = z
   })
   .openapi("WordCheckResponse")
 
+// Sentiment Analysis schemas
+export const SentimentAnalysisRequestSchema = z
+  .object({
+    text: z.string().min(1).openapi({
+      description: "Text to analyze for sentiment",
+      example: "I really love this product, it's fantastic!",
+    }),
+  })
+  .openapi("SentimentAnalysisRequest")
+
+export const SentimentAnalysisResponseSchema = z
+  .object({
+    sentiment: z.enum(["positive", "negative", "neutral", "mixed"]).openapi({
+      description: "The detected sentiment of the text",
+      example: "positive",
+    }),
+    score: z.number().openapi({
+      description: "Sentiment score from -1 (negative) to 1 (positive)",
+      example: 0.92,
+    }),
+    toxicity: z.boolean().openapi({
+      description: "Whether the content is potentially toxic",
+      example: false,
+    }),
+    explanation: z.string().optional().openapi({
+      description: "Optional explanation of the analysis",
+      example:
+        "The text contains very positive language with strong affirmation.",
+    }),
+    profanityCheck: z
+      .object({
+        containsProfanity: z.boolean().openapi({
+          description: "Whether profanity was detected",
+          example: false,
+        }),
+        profaneWords: z
+          .array(z.string())
+          .optional()
+          .openapi({
+            description: "List of profane words found if any",
+            example: ["badword"],
+          }),
+      })
+      .openapi({
+        description: "Results of the profanity check",
+      }),
+  })
+  .openapi("SentimentAnalysisResponse")
+
 // Text Submission schemas
 export const TextSubmitRequestSchema = z
   .object({
@@ -44,8 +93,34 @@ export const TextSubmitRequestSchema = z
       description: "Text to submit for moderation",
       example: "This is a sample text submission",
     }),
+    analyzeSentiment: z.boolean().optional().openapi({
+      description: "Whether to analyze sentiment of the text",
+      example: true,
+    }),
   })
   .openapi("TextSubmitRequest")
+
+// Sentiment data schema for reuse
+const SentimentDataSchema = z
+  .object({
+    sentiment: z.enum(["positive", "negative", "neutral", "mixed"]).openapi({
+      description: "The detected sentiment",
+      example: "positive",
+    }),
+    score: z.number().openapi({
+      description: "Sentiment score from -1 (negative) to 1 (positive)",
+      example: 0.75,
+    }),
+    toxicity: z.boolean().openapi({
+      description: "Whether the content is potentially toxic",
+      example: false,
+    }),
+    explanation: z.string().optional().openapi({
+      description: "Explanation of the sentiment analysis",
+      example: "The text expresses a positive opinion.",
+    }),
+  })
+  .openapi("SentimentData")
 
 export const TextSubmissionResponseSchema = z
   .object({
@@ -60,6 +135,9 @@ export const TextSubmissionResponseSchema = z
     timestamp: z.number().openapi({
       description: "Submission timestamp (Unix time)",
       example: 1714019949,
+    }),
+    sentiment: SentimentDataSchema.optional().openapi({
+      description: "Sentiment analysis results if requested",
     }),
   })
   .openapi("TextSubmissionResponse")

@@ -15,4 +15,5 @@ export const submissions = sqliteTable("submissions", {
   timestamp: integer("timestamp")
     .notNull()
     .default(sql`(unixepoch())`),
+  additionalData: text("additional_data"), // JSON string for storing sentiment analysis or other data
 })

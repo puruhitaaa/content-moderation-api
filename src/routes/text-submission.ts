@@ -51,10 +51,13 @@ const submitRoute = createRoute({
 })
 
 textSubmission.openapi(submitRoute, async (c) => {
-  const { text } = c.req.valid("json") as { text: string }
+  const { text, analyzeSentiment } = c.req.valid("json") as {
+    text: string
+    analyzeSentiment?: boolean
+  }
 
   try {
-    const result = await service.submitText(text)
+    const result = await service.submitText(text, analyzeSentiment)
     return c.json(result, 200)
   } catch (error) {
     console.error("Error in text submission:", error)
