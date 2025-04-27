@@ -1,9 +1,6 @@
 import { db } from "../db"
 import { submissions } from "../db/schema"
-import {
-  ProfanityCheckerService,
-  ProfanityCheckResponse,
-} from "./profanity-checker"
+import { ProfanityCheckerService } from "./profanity-checker"
 import { desc } from "drizzle-orm"
 
 // Interface for the text submission request
@@ -40,7 +37,7 @@ export class TextSubmissionService {
     const result = await this.profanityChecker.checkProfanity(text)
 
     // Store result in database
-    const moderatedOutput = result === false ? "false" : result
+    const moderatedOutput = result
     const timestamp = Math.floor(Date.now() / 1000) // Unix timestamp
 
     // Insert into database
