@@ -1,0 +1,1 @@
+ALTER TABLE `submissions` ADD `additional_data` text;
